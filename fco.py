@@ -45,9 +45,12 @@ if st.button("Analizar"):
             if not fragmentos_fuentes:
                 st.warning("No se encontraron declaraciones en los resultados de búsqueda.")
             else:
-                # Combinar los fragmentos en un solo texto, incluyendo las fuentes
+                # Mostrar las declaraciones y sus fuentes en la aplicación
+                st.subheader("Declaraciones Encontradas:")
                 texto_combinado = ""
                 for idx, (fragmento, fuente) in enumerate(fragmentos_fuentes, 1):
+                    st.markdown(f"**Declaración {idx}:** {fragmento}")
+                    st.markdown(f"**Fuente:** {fuente}\n")
                     texto_combinado += f"Declaración {idx}:\n{fragmento}\nFuente: {fuente}\n\n"
 
                 # Paso 2: Utilizar la API de Together para analizar las declaraciones
@@ -74,6 +77,7 @@ if st.button("Analizar"):
                     analisis = respuesta_together.json()
                     # Extraer la respuesta del asistente
                     respuesta_asistente = analisis.get('choices', [{}])[0].get('message', {}).get('content', '')
+                    st.subheader("Análisis de las Declaraciones:")
                     st.write(respuesta_asistente)
                 else:
                     st.error("Error al analizar las declaraciones con la API de Together.")
