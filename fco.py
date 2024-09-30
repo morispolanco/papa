@@ -17,15 +17,15 @@ together_headers = {
     "Content-Type": "application/json"
 }
 
-st.title("Análisis de Declaraciones del Papa Francisco por Año")
+st.title("Análisis de Declaraciones del Papa Francisco con Fuentes")
 
-# Entrada del usuario para el año
-anio = st.number_input("Ingrese un año para analizar las declaraciones del Papa Francisco:", min_value=2013, max_value=2024, step=1)
+# Entrada del usuario para el tema
+tema = st.text_input("Ingrese un tema para analizar las declaraciones del Papa Francisco:")
 
 if st.button("Analizar"):
-    if anio:
-        # Paso 1: Utilizar la API de Serper para buscar declaraciones del año especificado
-        consulta = f"Declaraciones del Papa Francisco en {anio}"
+    if tema:
+        # Paso 1: Utilizar la API de Serper para buscar declaraciones
+        consulta = f"Declaraciones del Papa Francisco sobre {tema}"
         serper_url = 'https://google.serper.dev/search'
         serper_payload = {
             "q": consulta
@@ -34,48 +34,27 @@ if st.button("Analizar"):
         respuesta_serper = requests.post(serper_url, headers=serper_headers, data=json.dumps(serper_payload))
         if respuesta_serper.status_code == 200:
             resultados_busqueda = respuesta_serper.json()
+            # Extraer fragmentos y fuentes de los resultados de búsqueda
+            fragmentos_fuentes = []
+            for resultado in resultados_busqueda.get('organic', []):
+                snippet = resultado.get('snippet', '')
+                link = resultado.get('link', '')
+                if snippet and link:
+                    fragmentos_fuentes.append((snippet, link))
 
-            declaraciones = []
-            # Intentar obtener contenido más largo de la sección 'peopleAlsoAsk'
-            if 'peopleAlsoAsk' in resultados_busqueda:
-                for item in resultados_busqueda['peopleAlsoAsk']:
-                    respuesta = item.get('answer', '')
-                    if respuesta:
-                        declaraciones.append({
-                            'declaracion': respuesta,
-                            'fuente': item.get('link', '')
-                        })
-
-            # Si no hay contenido en 'peopleAlsoAsk', usar 'organic' results
-            if not declaraciones:
-                for resultado in resultados_busqueda.get('organic', []):
-                    # Usar 'description' si está disponible, que suele ser más larga
-                    descripcion = resultado.get('description', '')
-                    link = resultado.get('link', '')
-                    if descripcion and link:
-                        declaraciones.append({
-                            'declaracion': descripcion,
-                            'fuente': link
-                        })
-                    elif resultado.get('snippet', '') and link:
-                        declaraciones.append({
-                            'declaracion': resultado.get('snippet', ''),
-                            'fuente': link
-                        })
-
-            if not declaraciones:
+            if not fragmentos_fuentes:
                 st.warning("No se encontraron declaraciones en los resultados de búsqueda.")
             else:
                 # Mostrar las declaraciones y sus fuentes en la aplicación
                 texto_combinado = ""
-                for idx, item in enumerate(declaraciones, 1):
-                    texto_combinado += f"Declaración {idx}:\n{item['declaracion']}\nFuente: {item['fuente']}\n\n"
+                for idx, (fragmento, fuente) in enumerate(fragmentos_fuentes, 1):
+                    texto_combinado += f"Declaración {idx}:\n{fragmento}\nFuente: {fuente}\n\n"
 
                 # Paso 2: Utilizar la API de Together para analizar las declaraciones
                 together_url = "https://api.together.xyz/v1/chat/completions"
                 mensajes = [
-                    {"role": "system", "content": "Eres un experto en teología católica. Analiza cuidadosamente las declaraciones proporcionadas, asegurándote de ser preciso y objetivo."},
-                    {"role": "user", "content": f"A continuación se presentan declaraciones del Papa Francisco del año {anio}. Identifica únicamente las que no están en concordancia con la fe y la tradición católica. Por cada declaración contraria, explica por qué lo es y cita las fuentes proporcionadas:\n{texto_combinado}"}
+                    {"role": "system", "content": "Eres un teólogo católico que analiza declaraciones para verificar si son contrarias al dogma y a la fe católica."},
+                    {"role": "user", "content": f"A continuación tienes varias declaraciones del Papa Francisco sobre el tema '{tema}'. Evalúa cada una y solo devuelve las que son contrarias al dogma y a la fe católica, con una explicación de por qué son contrarias:\n{texto_combinado}"}
                 ]
 
                 together_payload = {
@@ -95,14 +74,15 @@ if st.button("Analizar"):
                     analisis = respuesta_together.json()
                     # Extraer la respuesta del asistente
                     respuesta_asistente = analisis.get('choices', [{}])[0].get('message', {}).get('content', '')
-                    st.subheader("Declaraciones No Concordantes con la Fe Católica:")
+
                     if respuesta_asistente.strip():
+                        st.subheader("Declaraciones Contrarias al Dogma y Fe Católicas:")
                         st.write(respuesta_asistente)
                     else:
-                        st.write("No se encontraron declaraciones que no estén en concordancia con la fe y tradición católica.")
+                        st.info("No se encontraron declaraciones contrarias al dogma y la fe católica.")
                 else:
                     st.error("Error al analizar las declaraciones con la API de Together.")
         else:
             st.error("Error al obtener resultados de búsqueda con la API de Serper.")
     else:
-        st.warning("Por favor, ingrese un año para analizar.")
+        st.warning("Por favor, ingrese un tema para analizar.")
