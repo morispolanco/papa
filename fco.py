@@ -17,15 +17,15 @@ together_headers = {
     "Content-Type": "application/json"
 }
 
-st.title("Análisis de Declaraciones del Papa Francisco con Fuentes")
+st.title("Análisis de Declaraciones del Papa Francisco por Año")
 
-# Entrada del usuario para el tema
-tema = st.text_input("Ingrese un tema para analizar las declaraciones del Papa Francisco:")
+# Entrada del usuario para el año
+anio = st.number_input("Ingrese un año para analizar las declaraciones del Papa Francisco:", min_value=2013, max_value=2023, step=1)
 
 if st.button("Analizar"):
-    if tema:
-        # Paso 1: Utilizar la API de Serper para buscar declaraciones
-        consulta = f"Declaraciones del Papa Francisco sobre {tema}"
+    if anio:
+        # Paso 1: Utilizar la API de Serper para buscar declaraciones del año especificado
+        consulta = f"Declaraciones del Papa Francisco en {anio}"
         serper_url = 'https://google.serper.dev/search'
         serper_payload = {
             "q": consulta
@@ -78,8 +78,8 @@ if st.button("Analizar"):
                 # Paso 2: Utilizar la API de Together para analizar las declaraciones
                 together_url = "https://api.together.xyz/v1/chat/completions"
                 mensajes = [
-                    {"role": "system", "content": "Eres un experto en teología católica."},
-                    {"role": "user", "content": f"Analiza las siguientes declaraciones del Papa Francisco sobre el tema '{tema}' y encuentra aquellas que son contrarias a la fe y a la tradición católica. Por cada declaración, indica si es contraria y explica por qué. Incluye las fuentes proporcionadas:\n{texto_combinado}"}
+                    {"role": "system", "content": "Eres un experto en teología católica. Analiza cuidadosamente las declaraciones proporcionadas, asegurándote de ser preciso y objetivo."},
+                    {"role": "user", "content": f"A continuación se presentan declaraciones del Papa Francisco del año {anio}. Identifica las que son contrarias a la fe y a la tradición católica. Por cada declaración contraria, explica por qué lo es y cita las fuentes proporcionadas. Si una declaración no es contraria, indica que es conforme a la fe:\n{texto_combinado}"}
                 ]
 
                 together_payload = {
@@ -106,4 +106,4 @@ if st.button("Analizar"):
         else:
             st.error("Error al obtener resultados de búsqueda con la API de Serper.")
     else:
-        st.warning("Por favor, ingrese un tema para analizar.")
+        st.warning("Por favor, ingrese un año para analizar.")
