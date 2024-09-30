@@ -34,24 +34,46 @@ if st.button("Analizar"):
         respuesta_serper = requests.post(serper_url, headers=serper_headers, data=json.dumps(serper_payload))
         if respuesta_serper.status_code == 200:
             resultados_busqueda = respuesta_serper.json()
-            # Extraer fragmentos y fuentes de los resultados de búsqueda
-            fragmentos_fuentes = []
-            for resultado in resultados_busqueda.get('organic', []):
-                snippet = resultado.get('snippet', '')
-                link = resultado.get('link', '')
-                if snippet and link:
-                    fragmentos_fuentes.append((snippet, link))
 
-            if not fragmentos_fuentes:
+            # Intentar obtener contenido más largo de la sección 'peopleAlsoAsk'
+            declaraciones = []
+            if 'peopleAlsoAsk' in resultados_busqueda:
+                for item in resultados_busqueda['peopleAlsoAsk']:
+                    pregunta = item.get('question', '')
+                    respuesta = item.get('answer', '')
+                    if respuesta:
+                        declaraciones.append({
+                            'declaracion': respuesta,
+                            'fuente': item.get('link', '')
+                        })
+
+            # Si no hay contenido en 'peopleAlsoAsk', usar 'organic' results
+            if not declaraciones:
+                for resultado in resultados_busqueda.get('organic', []):
+                    # Usar 'description' si está disponible, que suele ser más larga
+                    descripcion = resultado.get('description', '')
+                    link = resultado.get('link', '')
+                    if descripcion and link:
+                        declaraciones.append({
+                            'declaracion': descripcion,
+                            'fuente': link
+                        })
+                    elif resultado.get('snippet', '') and link:
+                        declaraciones.append({
+                            'declaracion': resultado.get('snippet', ''),
+                            'fuente': link
+                        })
+
+            if not declaraciones:
                 st.warning("No se encontraron declaraciones en los resultados de búsqueda.")
             else:
                 # Mostrar las declaraciones y sus fuentes en la aplicación
                 st.subheader("Declaraciones Encontradas:")
                 texto_combinado = ""
-                for idx, (fragmento, fuente) in enumerate(fragmentos_fuentes, 1):
-                    st.markdown(f"**Declaración {idx}:** {fragmento}")
-                    st.markdown(f"**Fuente:** {fuente}\n")
-                    texto_combinado += f"Declaración {idx}:\n{fragmento}\nFuente: {fuente}\n\n"
+                for idx, item in enumerate(declaraciones, 1):
+                    st.markdown(f"**Declaración {idx}:** {item['declaracion']}")
+                    st.markdown(f"**Fuente:** {item['fuente']}\n")
+                    texto_combinado += f"Declaración {idx}:\n{item['declaracion']}\nFuente: {item['fuente']}\n\n"
 
                 # Paso 2: Utilizar la API de Together para analizar las declaraciones
                 together_url = "https://api.together.xyz/v1/chat/completions"
