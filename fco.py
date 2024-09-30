@@ -20,7 +20,7 @@ together_headers = {
 st.title("Análisis de Declaraciones del Papa Francisco por Año")
 
 # Entrada del usuario para el año
-anio = st.number_input("Ingrese un año para analizar las declaraciones del Papa Francisco:", min_value=2013, max_value=2023, step=1)
+anio = st.number_input("Ingrese un año para analizar las declaraciones del Papa Francisco:", min_value=2013, max_value=2024, step=1)
 
 if st.button("Analizar"):
     if anio:
@@ -35,11 +35,10 @@ if st.button("Analizar"):
         if respuesta_serper.status_code == 200:
             resultados_busqueda = respuesta_serper.json()
 
-            # Intentar obtener contenido más largo de la sección 'peopleAlsoAsk'
             declaraciones = []
+            # Intentar obtener contenido más largo de la sección 'peopleAlsoAsk'
             if 'peopleAlsoAsk' in resultados_busqueda:
                 for item in resultados_busqueda['peopleAlsoAsk']:
-                    pregunta = item.get('question', '')
                     respuesta = item.get('answer', '')
                     if respuesta:
                         declaraciones.append({
@@ -68,18 +67,15 @@ if st.button("Analizar"):
                 st.warning("No se encontraron declaraciones en los resultados de búsqueda.")
             else:
                 # Mostrar las declaraciones y sus fuentes en la aplicación
-                st.subheader("Declaraciones Encontradas:")
                 texto_combinado = ""
                 for idx, item in enumerate(declaraciones, 1):
-                    st.markdown(f"**Declaración {idx}:** {item['declaracion']}")
-                    st.markdown(f"**Fuente:** {item['fuente']}\n")
                     texto_combinado += f"Declaración {idx}:\n{item['declaracion']}\nFuente: {item['fuente']}\n\n"
 
                 # Paso 2: Utilizar la API de Together para analizar las declaraciones
                 together_url = "https://api.together.xyz/v1/chat/completions"
                 mensajes = [
                     {"role": "system", "content": "Eres un experto en teología católica. Analiza cuidadosamente las declaraciones proporcionadas, asegurándote de ser preciso y objetivo."},
-                    {"role": "user", "content": f"A continuación se presentan declaraciones del Papa Francisco del año {anio}. Identifica las que son contrarias a la fe y a la tradición católica. Por cada declaración contraria, explica por qué lo es y cita las fuentes proporcionadas. Si una declaración no es contraria, indica que es conforme a la fe:\n{texto_combinado}"}
+                    {"role": "user", "content": f"A continuación se presentan declaraciones del Papa Francisco del año {anio}. Identifica únicamente las que no están en concordancia con la fe y la tradición católica. Por cada declaración contraria, explica por qué lo es y cita las fuentes proporcionadas:\n{texto_combinado}"}
                 ]
 
                 together_payload = {
@@ -99,8 +95,11 @@ if st.button("Analizar"):
                     analisis = respuesta_together.json()
                     # Extraer la respuesta del asistente
                     respuesta_asistente = analisis.get('choices', [{}])[0].get('message', {}).get('content', '')
-                    st.subheader("Análisis de las Declaraciones:")
-                    st.write(respuesta_asistente)
+                    st.subheader("Declaraciones No Concordantes con la Fe Católica:")
+                    if respuesta_asistente.strip():
+                        st.write(respuesta_asistente)
+                    else:
+                        st.write("No se encontraron declaraciones que no estén en concordancia con la fe y tradición católica.")
                 else:
                     st.error("Error al analizar las declaraciones con la API de Together.")
         else:
